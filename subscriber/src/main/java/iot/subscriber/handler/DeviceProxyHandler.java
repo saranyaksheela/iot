@@ -16,10 +16,12 @@ public class DeviceProxyHandler {
     
     private static final Logger logger = LoggerFactory.getLogger(DeviceProxyHandler.class);
     private final WebClient webClient;
+    private final AuthHandler authHandler;
 
-    public DeviceProxyHandler(WebClient webClient) {
+    public DeviceProxyHandler(WebClient webClient, AuthHandler authHandler) {
         this.webClient = webClient;
-        logger.info("DeviceProxyHandler initialized");
+        this.authHandler = authHandler;
+        logger.info("DeviceProxyHandler initialized with authentication support");
     }
 
     /**
@@ -43,6 +45,7 @@ public class DeviceProxyHandler {
             
             webClient.post(Constants.PROVIDER_PORT, Constants.PROVIDER_HOST, Constants.PROVIDER_DEVICES_PATH)
                 .putHeader(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
+                .putHeader(Constants.HEADER_API_KEY, authHandler.getProviderApiKey())
                 .sendJsonObject(deviceData)
                 .onSuccess(response -> {
                     logger.info("Device created successfully via Provider: statusCode={}", response.statusCode());
@@ -95,6 +98,7 @@ public class DeviceProxyHandler {
             
             webClient.put(Constants.PROVIDER_PORT, Constants.PROVIDER_HOST, updatePath)
                 .putHeader(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
+                .putHeader(Constants.HEADER_API_KEY, authHandler.getProviderApiKey())
                 .sendJsonObject(deviceData)
                 .onSuccess(response -> {
                     logger.info("Device updated successfully via Provider: deviceId={}, statusCode={}", 
@@ -139,6 +143,7 @@ public class DeviceProxyHandler {
             
             webClient.delete(Constants.PROVIDER_PORT, Constants.PROVIDER_HOST, deletePath)
                 .putHeader(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
+                .putHeader(Constants.HEADER_API_KEY, authHandler.getProviderApiKey())
                 .send()
                 .onSuccess(response -> {
                     logger.info("Device deleted successfully via Provider: deviceId={}, statusCode={}", 

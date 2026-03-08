@@ -14,10 +14,12 @@ public class DataFetchHandler {
     
     private static final Logger logger = LoggerFactory.getLogger(DataFetchHandler.class);
     private final WebClient webClient;
+    private final AuthHandler authHandler;
 
-    public DataFetchHandler(WebClient webClient) {
+    public DataFetchHandler(WebClient webClient, AuthHandler authHandler) {
         this.webClient = webClient;
-        logger.info("DataFetchHandler initialized");
+        this.authHandler = authHandler;
+        logger.info("DataFetchHandler initialized with authentication support");
     }
 
     /**
@@ -28,6 +30,7 @@ public class DataFetchHandler {
         
         try {
             webClient.get(Constants.PROVIDER_PORT, Constants.PROVIDER_HOST, Constants.PROVIDER_DATA_PATH)
+                .putHeader(Constants.HEADER_API_KEY, authHandler.getProviderApiKey())
                 .send()
                 .onSuccess(response -> {
                     JsonObject result = new JsonObject()

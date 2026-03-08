@@ -1,0 +1,36 @@
+{
+  "enabled": true,
+  "providerApiKey": "pk_live_subscriber987654321xyz",
+  "apiKeys": {
+    "client-app": {
+      "key": "sk_live_client_app_key_12345",
+      "description": "Client application API key",
+      "enabled": true,
+      "expiryTimestamp": null
+    },
+    "mobile-app": {
+      "key": "sk_live_mobile_app_key_67890",
+      "description": "Mobile application API key",
+      "enabled": true,
+      "expiryTimestamp": null
+    },
+    "web-dashboard": {
+      "key": "sk_live_dashboard_key_abcdef",
+      "description": "Web dashboard API key",
+      "enabled": true,
+      "expiryTimestamp": null
+    },
+    "test-client": {
+      "key": "sk_test_development_client_key",
+      "description": "Test client API key (development only)",
+      "enabled": true,
+      "expiryTimestamp": null
+    },
+    "disabled-client": {
+      "key": "sk_disabled_old_client_key",
+      "description": "Example of disabled client API key",
+      "enabled": false,
+      "expiryTimestamp": null
+    }
+  }
+}

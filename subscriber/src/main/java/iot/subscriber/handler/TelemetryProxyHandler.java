@@ -16,10 +16,12 @@ public class TelemetryProxyHandler {
     
     private static final Logger logger = LoggerFactory.getLogger(TelemetryProxyHandler.class);
     private final WebClient webClient;
+    private final AuthHandler authHandler;
 
-    public TelemetryProxyHandler(WebClient webClient) {
+    public TelemetryProxyHandler(WebClient webClient, AuthHandler authHandler) {
         this.webClient = webClient;
-        logger.info("TelemetryProxyHandler initialized");
+        this.authHandler = authHandler;
+        logger.info("TelemetryProxyHandler initialized with authentication support");
     }
 
     /**
@@ -45,6 +47,7 @@ public class TelemetryProxyHandler {
             
             webClient.get(Constants.PROVIDER_PORT, Constants.PROVIDER_HOST, telemetryPath)
                 .putHeader(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
+                .putHeader(Constants.HEADER_API_KEY, authHandler.getProviderApiKey())
                 .send()
                 .onSuccess(response -> {
                     logger.info("Telemetry data fetched successfully via Provider: deviceId={}, statusCode={}", 
