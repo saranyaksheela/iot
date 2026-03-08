@@ -32,6 +32,8 @@ public class ProviderVerticle extends AbstractVerticle {
   
   private Pool pool;
   private JsonObject dbConfig;
+  private JsonObject authConfig;
+  private AuthHandler authHandler;
   private DeviceHandler deviceHandler;
   private TelemetryHandler telemetryHandler;
   private HealthHandler healthHandler;
@@ -40,22 +42,31 @@ public class ProviderVerticle extends AbstractVerticle {
   public void start(Promise<Void> startPromise) {
     logger.info("Starting Provider service...");
     
-    // Load database configuration from file
+    // Load configurations
     vertx.fileSystem().readFile("src/main/resources/db-config.json")
-      .onSuccess(buffer -> {
+      .compose(dbBuffer -> {
+        dbConfig = dbBuffer.toJsonObject().getJsonObject(Constants.CONFIG_DB);
+        logger.debug("Database configuration loaded successfully");
+        
+        // Load authentication configuration
+        return vertx.fileSystem().readFile("src/main/resources/auth-config.json");
+      })
+      .onSuccess(authBuffer -> {
         try {
-          JsonObject config = buffer.toJsonObject();
-          dbConfig = config.getJsonObject(Constants.CONFIG_DB);
-          
-          logger.debug("Configuration loaded successfully");
+          authConfig = authBuffer.toJsonObject();
+          logger.debug("Authentication configuration loaded successfully");
           
           // Initialize database connection
           initDatabase();
+          
+          // Initialize authentication
+          initAuthentication();
           
           // Initialize handlers
           initHandlers();
           
           // Start HTTP server
+          JsonObject config = new JsonObject();
           startHttpServer(config, startPromise);
           
         } catch (Exception e) {
@@ -64,7 +75,7 @@ public class ProviderVerticle extends AbstractVerticle {
         }
       })
       .onFailure(err -> {
-        logger.error("Failed to load config file: {}", err.getMessage(), err);
+        logger.error("Failed to load config files: {}", err.getMessage(), err);
         startPromise.fail(err);
       });
   }
@@ -104,6 +115,23 @@ public class ProviderVerticle extends AbstractVerticle {
   }
 
   /**
+   * Initialize authentication handler.
+   */
+  private void initAuthentication() {
+    logger.info("Initializing authentication...");
+    authHandler = new AuthHandler(authConfig);
+    
+    boolean authEnabled = authConfig.getBoolean(Constants.CONFIG_AUTH_ENABLED, true);
+    if (authEnabled && authHandler.isConfigured()) {
+      logger.info("Authentication enabled with {} API keys", authHandler.getApiKeyCount());
+    } else if (!authEnabled) {
+      logger.warn("Authentication is DISABLED in configuration. All routes are publicly accessible!");
+    } else {
+      logger.warn("Authentication is enabled but no API keys configured. All requests will be rejected!");
+    }
+  }
+
+  /**
    * Initialize business logic handlers.
    */
   private void initHandlers() {
@@ -130,7 +158,7 @@ public class ProviderVerticle extends AbstractVerticle {
     setupRoutes(router);
     
     // Start the HTTP server
-    int port = config.getJsonObject("http").getInteger("port", Constants.DEFAULT_HTTP_PORT);
+    int port = config().getInteger(Constants.CONFIG_HTTP_PORT, Constants.DEFAULT_HTTP_PORT);
     server.requestHandler(router).listen(port)
       .onSuccess(s -> {
         logger.info("Provider service started successfully on port {}", port);
@@ -195,25 +223,55 @@ public class ProviderVerticle extends AbstractVerticle {
   private void setupRoutes(Router router) {
     logger.debug("Setting up routes...");
     
-    // REST API endpoints with base URL - delegate to handlers
-    router.post(Constants.DEVICES_ENDPOINT).handler(deviceHandler::createDevice);
-    router.get(Constants.DEVICES_ENDPOINT).handler(deviceHandler::getAllDevices);
-    router.put(Constants.DEVICE_BY_ID_ENDPOINT).handler(deviceHandler::updateDevice);
-    router.delete(Constants.DEVICE_BY_ID_ENDPOINT).handler(deviceHandler::deleteDevice);
-    router.get(Constants.TELEMETRY_BY_DEVICE_ENDPOINT).handler(telemetryHandler::getTelemetryByDevice);
-    router.get(Constants.DATA_ENDPOINT).handler(healthHandler::getData);
+    // Check if authentication is enabled
+    boolean authEnabled = authConfig.getBoolean(Constants.CONFIG_AUTH_ENABLED, true);
     
-    // Health check endpoint (no base URL for health)
+    // Health check endpoint (no authentication required)
     router.get(Constants.HEALTH_ENDPOINT).handler(healthHandler::healthCheck);
     
-    logger.info("Routes configured: POST {}, GET {}, PUT {}, DELETE {}, GET {}, GET {}, GET {}", 
-      Constants.DEVICES_ENDPOINT,
-      Constants.DEVICES_ENDPOINT,
-      Constants.DEVICE_BY_ID_ENDPOINT,
-      Constants.DEVICE_BY_ID_ENDPOINT,
-      Constants.TELEMETRY_BY_DEVICE_ENDPOINT,
-      Constants.DATA_ENDPOINT,
-      Constants.HEALTH_ENDPOINT);
+    // Protected REST API endpoints with authentication
+    if (authEnabled && authHandler.isConfigured()) {
+      logger.info("Authentication middleware enabled for protected routes");
+      
+      // Apply authentication to all /provider/api/* routes
+      router.route(Constants.BASE_URL + "/*").handler(authHandler::authenticate);
+      
+      // REST API endpoints - protected by authentication
+      router.post(Constants.DEVICES_ENDPOINT).handler(deviceHandler::createDevice);
+      router.get(Constants.DEVICES_ENDPOINT).handler(deviceHandler::getAllDevices);
+      router.put(Constants.DEVICE_BY_ID_ENDPOINT).handler(deviceHandler::updateDevice);
+      router.delete(Constants.DEVICE_BY_ID_ENDPOINT).handler(deviceHandler::deleteDevice);
+      router.get(Constants.TELEMETRY_BY_DEVICE_ENDPOINT).handler(telemetryHandler::getTelemetryByDevice);
+      router.get(Constants.DATA_ENDPOINT).handler(healthHandler::getData);
+      
+      logger.info("Routes configured with authentication: POST {}, GET {}, PUT {}, DELETE {}, GET {}, GET {}, GET {}", 
+        Constants.DEVICES_ENDPOINT,
+        Constants.DEVICES_ENDPOINT,
+        Constants.DEVICE_BY_ID_ENDPOINT,
+        Constants.DEVICE_BY_ID_ENDPOINT,
+        Constants.TELEMETRY_BY_DEVICE_ENDPOINT,
+        Constants.DATA_ENDPOINT,
+        Constants.HEALTH_ENDPOINT);
+    } else {
+      logger.warn("Authentication disabled or not configured - routes are publicly accessible!");
+      
+      // REST API endpoints without authentication (NOT RECOMMENDED FOR PRODUCTION)
+      router.post(Constants.DEVICES_ENDPOINT).handler(deviceHandler::createDevice);
+      router.get(Constants.DEVICES_ENDPOINT).handler(deviceHandler::getAllDevices);
+      router.put(Constants.DEVICE_BY_ID_ENDPOINT).handler(deviceHandler::updateDevice);
+      router.delete(Constants.DEVICE_BY_ID_ENDPOINT).handler(deviceHandler::deleteDevice);
+      router.get(Constants.TELEMETRY_BY_DEVICE_ENDPOINT).handler(telemetryHandler::getTelemetryByDevice);
+      router.get(Constants.DATA_ENDPOINT).handler(healthHandler::getData);
+      
+      logger.info("Routes configured WITHOUT authentication: POST {}, GET {}, PUT {}, DELETE {}, GET {}, GET {}, GET {}", 
+        Constants.DEVICES_ENDPOINT,
+        Constants.DEVICES_ENDPOINT,
+        Constants.DEVICE_BY_ID_ENDPOINT,
+        Constants.DEVICE_BY_ID_ENDPOINT,
+        Constants.TELEMETRY_BY_DEVICE_ENDPOINT,
+        Constants.DATA_ENDPOINT,
+        Constants.HEALTH_ENDPOINT);
+    }
   }
 
   @Override
