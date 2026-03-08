@@ -11,6 +11,7 @@ import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
 import iot.provider.config.Constants;
+import iot.provider.handler.AuthHandler;
 import iot.provider.handler.DeviceHandler;
 import iot.provider.handler.HealthHandler;
 import iot.provider.handler.TelemetryHandler;

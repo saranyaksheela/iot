@@ -16,11 +16,14 @@ public class Constants {
   // HTTP Headers
   public static final String CONTENT_TYPE_JSON = "application/json";
   public static final String HEADER_CONTENT_TYPE = "content-type";
+  public static final String HEADER_API_KEY = "X-API-Key";
+  public static final String HEADER_WWW_AUTHENTICATE = "WWW-Authenticate";
   
   // HTTP Status Codes
   public static final int STATUS_OK = 200;
   public static final int STATUS_CREATED = 201;
   public static final int STATUS_BAD_REQUEST = 400;
+  public static final int STATUS_UNAUTHORIZED = 401;
   public static final int STATUS_NOT_FOUND = 404;
   public static final int STATUS_INTERNAL_SERVER_ERROR = 500;
   
@@ -85,6 +88,8 @@ public class Constants {
   // Config Keys
   public static final String CONFIG_HTTP_PORT = "http.port";
   public static final String CONFIG_DB = "database";
+  public static final String CONFIG_AUTH = "authentication";
+  public static final String CONFIG_AUTH_ENABLED = "enabled";
   public static final String CONFIG_DB_HOST = "host";
   public static final String CONFIG_DB_PORT = "port";
   public static final String CONFIG_DB_NAME = "database";
