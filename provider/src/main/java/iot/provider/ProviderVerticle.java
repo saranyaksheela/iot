@@ -8,7 +8,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.TimeoutHandler;
 import io.vertx.pgclient.PgConnectOptions;
-import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
 import iot.provider.config.Constants;
@@ -87,7 +86,7 @@ public class ProviderVerticle extends AbstractVerticle {
         .setMaxSize(dbConfig.getInteger(Constants.CONFIG_DB_POOL_SIZE, 5));
 
       // Create the PostgreSQL pool using Pool interface (non-deprecated)
-      pool = PgPool.pool(vertx, connectOptions, poolOptions);
+      pool = Pool.pool(vertx, connectOptions, poolOptions);
       
       logger.info("Database connection pool initialized: host={}, port={}, database={}, poolSize={}", 
         connectOptions.getHost(), 
@@ -195,14 +194,16 @@ public class ProviderVerticle extends AbstractVerticle {
     // REST API endpoints with base URL - delegate to handlers
     router.post(Constants.DEVICES_ENDPOINT).handler(deviceHandler::createDevice);
     router.get(Constants.DEVICES_ENDPOINT).handler(deviceHandler::getAllDevices);
+    router.put(Constants.DEVICE_BY_ID_ENDPOINT).handler(deviceHandler::updateDevice);
     router.get(Constants.DATA_ENDPOINT).handler(healthHandler::getData);
     
     // Health check endpoint (no base URL for health)
     router.get(Constants.HEALTH_ENDPOINT).handler(healthHandler::healthCheck);
     
-    logger.info("Routes configured: POST {}, GET {}, GET {}, GET {}", 
+    logger.info("Routes configured: POST {}, GET {}, PUT {}, GET {}, GET {}", 
       Constants.DEVICES_ENDPOINT,
       Constants.DEVICES_ENDPOINT,
+      Constants.DEVICE_BY_ID_ENDPOINT,
       Constants.DATA_ENDPOINT,
       Constants.HEALTH_ENDPOINT);
   }

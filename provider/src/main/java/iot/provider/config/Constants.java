@@ -7,6 +7,7 @@ public class Constants {
   
   // API Endpoints
   public static final String DEVICES_ENDPOINT = BASE_URL + "/devices";
+  public static final String DEVICE_BY_ID_ENDPOINT = BASE_URL + "/devices/:id";
   public static final String DATA_ENDPOINT = BASE_URL + "/data";
   public static final String HEALTH_ENDPOINT = "/health";
   
@@ -18,6 +19,7 @@ public class Constants {
   public static final int STATUS_OK = 200;
   public static final int STATUS_CREATED = 201;
   public static final int STATUS_BAD_REQUEST = 400;
+  public static final int STATUS_NOT_FOUND = 404;
   public static final int STATUS_INTERNAL_SERVER_ERROR = 500;
   
   // Default Values
@@ -32,6 +34,10 @@ public class Constants {
   public static final String SELECT_ALL_DEVICES_QUERY = 
     "SELECT id, device_uuid, device_name, device_type, firmware_version, location, status, created_at " +
     "FROM devices ORDER BY created_at DESC";
+  
+  public static final String UPDATE_DEVICE_QUERY = 
+    "UPDATE devices SET device_name = $1 WHERE id = $2 " +
+    "RETURNING id, device_uuid, device_name, device_type, firmware_version, location, status, created_at";
   
   // JSON Keys
   public static final String JSON_KEY_ID = "id";

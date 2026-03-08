@@ -1,6 +1,10 @@
 package iot.provider.handler;
 
-import io.vertx.core.Future;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
@@ -8,10 +12,6 @@ import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.Tuple;
 import iot.provider.config.Constants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.UUID;
 
 /**
  * Handler for device-related business logic.
@@ -107,6 +107,84 @@ public class DeviceHandler {
                 
         } catch (Exception e) {
             logger.error("Unexpected error while fetching devices", e);
+            sendInternalError(ctx, "Unexpected error occurred", e.getMessage());
+        }
+    }
+
+    /**
+     * Handle device update request.
+     * Updates device name by ID and returns the updated device.
+     */
+    public void updateDevice(RoutingContext ctx) {
+        logger.debug("Received device update request");
+        
+        try {
+            // Extract device ID from path parameter
+            String idParam = ctx.pathParam("id");
+            if (idParam == null || idParam.trim().isEmpty()) {
+                logger.warn("Device ID is missing in path parameter");
+                sendBadRequest(ctx, "Device ID is required");
+                return;
+            }
+            
+            long deviceId;
+            try {
+                deviceId = Long.parseLong(idParam);
+            } catch (NumberFormatException e) {
+                logger.warn("Invalid device ID format: {}", idParam);
+                sendBadRequest(ctx, "Invalid device ID format");
+                return;
+            }
+            
+            // Parse request body
+            JsonObject body = ctx.body().asJsonObject();
+            if (body == null) {
+                logger.warn("Request body is missing");
+                sendBadRequest(ctx, "Request body is required");
+                return;
+            }
+            
+            // Validate device name
+            if (!body.containsKey(Constants.JSON_KEY_DEVICE_NAME) || 
+                body.getString(Constants.JSON_KEY_DEVICE_NAME) == null ||
+                body.getString(Constants.JSON_KEY_DEVICE_NAME).trim().isEmpty()) {
+                logger.warn("Device name is missing in request body");
+                sendBadRequest(ctx, "Device name is required");
+                return;
+            }
+            
+            String deviceName = sanitizeInput(body.getString(Constants.JSON_KEY_DEVICE_NAME));
+            
+            // Validate device name length
+            if (deviceName.length() > 100) {
+                logger.warn("Device name exceeds maximum length: {}", deviceName.length());
+                sendBadRequest(ctx, "Device name must not exceed 100 characters");
+                return;
+            }
+            
+            logger.info("Updating device: id={}, newName={}", deviceId, deviceName);
+            
+            // Execute database update
+            pool.preparedQuery(Constants.UPDATE_DEVICE_QUERY)
+                .execute(Tuple.of(deviceName, deviceId))
+                .onSuccess(rows -> {
+                    if (rows.size() == 0) {
+                        logger.warn("Device not found: id={}", deviceId);
+                        sendNotFound(ctx, "Device not found");
+                    } else {
+                        Row row = rows.iterator().next();
+                        JsonObject response = buildDeviceResponse(row);
+                        logger.info("Device updated successfully: id={}, newName={}", deviceId, deviceName);
+                        sendSuccess(ctx, response);
+                    }
+                })
+                .onFailure(err -> {
+                    logger.error("Failed to update device: id={}, error={}", deviceId, err.getMessage(), err);
+                    sendInternalError(ctx, "Failed to update device", err.getMessage());
+                });
+                
+        } catch (Exception e) {
+            logger.error("Unexpected error during device update", e);
             sendInternalError(ctx, "Unexpected error occurred", e.getMessage());
         }
     }
@@ -225,6 +303,20 @@ public class DeviceHandler {
         
         ctx.response()
             .setStatusCode(Constants.STATUS_BAD_REQUEST)
+            .putHeader(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
+            .end(error.encode());
+    }
+
+    /**
+     * Send not found response.
+     */
+    private void sendNotFound(RoutingContext ctx, String message) {
+        JsonObject error = new JsonObject()
+            .put(Constants.JSON_KEY_ERROR, "Not Found")
+            .put(Constants.JSON_KEY_MESSAGE, message);
+        
+        ctx.response()
+            .setStatusCode(Constants.STATUS_NOT_FOUND)
             .putHeader(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
             .end(error.encode());
     }
