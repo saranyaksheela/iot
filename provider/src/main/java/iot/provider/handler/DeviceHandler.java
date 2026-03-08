@@ -190,6 +190,59 @@ public class DeviceHandler {
     }
 
     /**
+     * Handle device deletion request.
+     * Deletes device by ID and returns success response.
+     */
+    public void deleteDevice(RoutingContext ctx) {
+        logger.debug("Received device deletion request");
+        
+        try {
+            // Extract device ID from path parameter
+            String idParam = ctx.pathParam("id");
+            if (idParam == null || idParam.trim().isEmpty()) {
+                logger.warn("Device ID is missing in path parameter");
+                sendBadRequest(ctx, "Device ID is required");
+                return;
+            }
+            
+            long deviceId;
+            try {
+                deviceId = Long.parseLong(idParam);
+            } catch (NumberFormatException e) {
+                logger.warn("Invalid device ID format: {}", idParam);
+                sendBadRequest(ctx, "Invalid device ID format");
+                return;
+            }
+            
+            logger.info("Deleting device: id={}", deviceId);
+            
+            // Execute database delete
+            pool.preparedQuery(Constants.DELETE_DEVICE_QUERY)
+                .execute(Tuple.of(deviceId))
+                .onSuccess(rows -> {
+                    if (rows.size() == 0) {
+                        logger.warn("Device not found: id={}", deviceId);
+                        sendNotFound(ctx, "Device not found");
+                    } else {
+                        JsonObject response = new JsonObject()
+                            .put(Constants.JSON_KEY_MESSAGE, "Device deleted successfully")
+                            .put(Constants.JSON_KEY_ID, deviceId);
+                        logger.info("Device deleted successfully: id={}", deviceId);
+                        sendSuccess(ctx, response);
+                    }
+                })
+                .onFailure(err -> {
+                    logger.error("Failed to delete device: id={}, error={}", deviceId, err.getMessage(), err);
+                    sendInternalError(ctx, "Failed to delete device", err.getMessage());
+                });
+                
+        } catch (Exception e) {
+            logger.error("Unexpected error during device deletion", e);
+            sendInternalError(ctx, "Unexpected error occurred", e.getMessage());
+        }
+    }
+
+    /**
      * Validate device input data.
      */
     private ValidationResult validateDeviceInput(JsonObject body) {

@@ -13,6 +13,7 @@ import io.vertx.sqlclient.PoolOptions;
 import iot.provider.config.Constants;
 import iot.provider.handler.DeviceHandler;
 import iot.provider.handler.HealthHandler;
+import iot.provider.handler.TelemetryHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +32,7 @@ public class ProviderVerticle extends AbstractVerticle {
   private Pool pool;
   private JsonObject dbConfig;
   private DeviceHandler deviceHandler;
+  private TelemetryHandler telemetryHandler;
   private HealthHandler healthHandler;
 
   @Override
@@ -106,6 +108,7 @@ public class ProviderVerticle extends AbstractVerticle {
   private void initHandlers() {
     logger.info("Initializing handlers...");
     deviceHandler = new DeviceHandler(pool);
+    telemetryHandler = new TelemetryHandler(pool);
     healthHandler = new HealthHandler();
     logger.info("Handlers initialized successfully");
   }
@@ -195,15 +198,19 @@ public class ProviderVerticle extends AbstractVerticle {
     router.post(Constants.DEVICES_ENDPOINT).handler(deviceHandler::createDevice);
     router.get(Constants.DEVICES_ENDPOINT).handler(deviceHandler::getAllDevices);
     router.put(Constants.DEVICE_BY_ID_ENDPOINT).handler(deviceHandler::updateDevice);
+    router.delete(Constants.DEVICE_BY_ID_ENDPOINT).handler(deviceHandler::deleteDevice);
+    router.get(Constants.TELEMETRY_BY_DEVICE_ENDPOINT).handler(telemetryHandler::getTelemetryByDevice);
     router.get(Constants.DATA_ENDPOINT).handler(healthHandler::getData);
     
     // Health check endpoint (no base URL for health)
     router.get(Constants.HEALTH_ENDPOINT).handler(healthHandler::healthCheck);
     
-    logger.info("Routes configured: POST {}, GET {}, PUT {}, GET {}, GET {}", 
+    logger.info("Routes configured: POST {}, GET {}, PUT {}, DELETE {}, GET {}, GET {}, GET {}", 
       Constants.DEVICES_ENDPOINT,
       Constants.DEVICES_ENDPOINT,
       Constants.DEVICE_BY_ID_ENDPOINT,
+      Constants.DEVICE_BY_ID_ENDPOINT,
+      Constants.TELEMETRY_BY_DEVICE_ENDPOINT,
       Constants.DATA_ENDPOINT,
       Constants.HEALTH_ENDPOINT);
   }
