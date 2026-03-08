@@ -24,6 +24,9 @@ class ProviderVerticleTest {
   private WebClient client;
   private static final int PORT = 8080;
   private static final String HOST = "localhost";
+  
+  // Valid API key for testing (from auth-config.json)
+  private static final String VALID_API_KEY = "pk_live_12345abcdef67890provider";
 
   @BeforeEach
   void setup(VertxTestContext testContext) {
@@ -59,6 +62,7 @@ class ProviderVerticleTest {
   @DisplayName("Should return 200 OK for data endpoint")
   void testDataEndpoint(VertxTestContext testContext) {
     client.get(PORT, HOST, "/provider/api/data")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(200, response.statusCode());
@@ -81,6 +85,7 @@ class ProviderVerticleTest {
 
     client.post(PORT, HOST, "/provider/api/devices")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(deviceData)
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(201, response.statusCode());
@@ -102,6 +107,7 @@ class ProviderVerticleTest {
 
     client.post(PORT, HOST, "/provider/api/devices")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(deviceData)
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(400, response.statusCode());
@@ -121,6 +127,7 @@ class ProviderVerticleTest {
 
     client.post(PORT, HOST, "/provider/api/devices")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(deviceData)
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(400, response.statusCode());
@@ -142,6 +149,7 @@ class ProviderVerticleTest {
 
     client.post(PORT, HOST, "/provider/api/devices")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(deviceData)
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(400, response.statusCode());
@@ -156,6 +164,7 @@ class ProviderVerticleTest {
   void testCreateDeviceEmptyBody(VertxTestContext testContext) {
     client.post(PORT, HOST, "/provider/api/devices")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(new JsonObject())
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(400, response.statusCode());
@@ -169,6 +178,7 @@ class ProviderVerticleTest {
   @DisplayName("Should retrieve all devices")
   void testGetAllDevices(VertxTestContext testContext) {
     client.get(PORT, HOST, "/provider/api/devices")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(200, response.statusCode());
@@ -188,6 +198,7 @@ class ProviderVerticleTest {
 
     client.put(PORT, HOST, "/provider/api/devices/1")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(updateData)
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(400, response.statusCode());
@@ -205,6 +216,7 @@ class ProviderVerticleTest {
 
     client.put(PORT, HOST, "/provider/api/devices/invalid")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(updateData)
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(400, response.statusCode());
@@ -222,6 +234,7 @@ class ProviderVerticleTest {
 
     client.put(PORT, HOST, "/provider/api/devices/999999")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(updateData)
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(404, response.statusCode());
@@ -240,6 +253,7 @@ class ProviderVerticleTest {
 
     client.put(PORT, HOST, "/provider/api/devices/1")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(updateData)
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(400, response.statusCode());
@@ -255,6 +269,7 @@ class ProviderVerticleTest {
   @DisplayName("Should return 400 when deleting with invalid device ID")
   void testDeleteDeviceInvalidId(VertxTestContext testContext) {
     client.delete(PORT, HOST, "/provider/api/devices/invalid")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(400, response.statusCode());
@@ -268,6 +283,7 @@ class ProviderVerticleTest {
   @DisplayName("Should return 404 when deleting non-existent device")
   void testDeleteDeviceNotFound(VertxTestContext testContext) {
     client.delete(PORT, HOST, "/provider/api/devices/999999")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(404, response.statusCode());
@@ -283,6 +299,7 @@ class ProviderVerticleTest {
   @DisplayName("Should return 400 when fetching telemetry with invalid device ID")
   void testGetTelemetryInvalidDeviceId(VertxTestContext testContext) {
     client.get(PORT, HOST, "/provider/api/telemetry/device/invalid")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(400, response.statusCode());
@@ -296,6 +313,7 @@ class ProviderVerticleTest {
   @DisplayName("Should retrieve telemetry data for valid device ID")
   void testGetTelemetryByDeviceId(VertxTestContext testContext) {
     client.get(PORT, HOST, "/provider/api/telemetry/device/1")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(200, response.statusCode());
@@ -311,6 +329,7 @@ class ProviderVerticleTest {
   @DisplayName("Should return empty array for device with no telemetry data")
   void testGetTelemetryNoData(VertxTestContext testContext) {
     client.get(PORT, HOST, "/provider/api/telemetry/device/999999")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(200, response.statusCode());

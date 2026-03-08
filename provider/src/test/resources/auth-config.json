@@ -1,0 +1,35 @@
+{
+  "enabled": true,
+  "apiKeys": {
+    "provider-service": {
+      "key": "pk_live_12345abcdef67890provider",
+      "description": "Provider service primary API key",
+      "enabled": true,
+      "expiryTimestamp": null
+    },
+    "subscriber-service": {
+      "key": "pk_live_subscriber987654321xyz",
+      "description": "Subscriber service API key for accessing provider",
+      "enabled": true,
+      "expiryTimestamp": null
+    },
+    "admin-client": {
+      "key": "pk_live_admin_secret_key_2026",
+      "description": "Admin client API key",
+      "enabled": true,
+      "expiryTimestamp": null
+    },
+    "test-client": {
+      "key": "pk_test_development_only_key",
+      "description": "Test client API key (development only)",
+      "enabled": true,
+      "expiryTimestamp": null
+    },
+    "disabled-client": {
+      "key": "pk_disabled_old_key_example",
+      "description": "Example of disabled API key",
+      "enabled": false,
+      "expiryTimestamp": null
+    }
+  }
+}
