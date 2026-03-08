@@ -24,6 +24,9 @@ class SubscriberVerticleTest {
   private WebClient client;
   private static final int PORT = 8081;
   private static final String HOST = "localhost";
+  
+  // Valid API key for testing (from auth-config.json)
+  private static final String VALID_API_KEY = "sk_live_client_app_key_12345";
 
   @BeforeEach
   void setup(VertxTestContext testContext) {
@@ -84,6 +87,7 @@ class SubscriberVerticleTest {
 
     client.post(PORT, HOST, "/subscriber/api/devices")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(deviceData)
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         // Provider must be running for this test to pass with 201
@@ -98,6 +102,7 @@ class SubscriberVerticleTest {
   void testCreateDeviceProxyEmptyBody(VertxTestContext testContext) {
     client.post(PORT, HOST, "/subscriber/api/devices")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(new JsonObject())
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(400, response.statusCode());
@@ -112,6 +117,7 @@ class SubscriberVerticleTest {
   void testCreateDeviceProxyNoBody(VertxTestContext testContext) {
     client.post(PORT, HOST, "/subscriber/api/devices")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(400, response.statusCode());
@@ -129,6 +135,7 @@ class SubscriberVerticleTest {
 
     client.put(PORT, HOST, "/subscriber/api/devices/1")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(updateData)
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         // Provider must be running for this test to pass
@@ -146,6 +153,7 @@ class SubscriberVerticleTest {
 
     client.put(PORT, HOST, "/subscriber/api/devices/")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(updateData)
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         // This will hit a different route or 404
@@ -159,6 +167,7 @@ class SubscriberVerticleTest {
   void testUpdateDeviceProxyEmptyBody(VertxTestContext testContext) {
     client.put(PORT, HOST, "/subscriber/api/devices/1")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(new JsonObject())
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(400, response.statusCode());
@@ -176,6 +185,7 @@ class SubscriberVerticleTest {
 
     client.put(PORT, HOST, "/subscriber/api/devices/invalid")
       .putHeader("content-type", "application/json")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .sendJsonObject(updateData)
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         // Should forward to provider which will return 400
@@ -190,6 +200,7 @@ class SubscriberVerticleTest {
   @DisplayName("Should proxy device deletion to provider (requires provider running)")
   void testDeleteDeviceProxy(VertxTestContext testContext) {
     client.delete(PORT, HOST, "/subscriber/api/devices/1")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         // Provider must be running for this test to pass
@@ -203,6 +214,7 @@ class SubscriberVerticleTest {
   @DisplayName("Should return 400 when proxying deletion with missing device ID")
   void testDeleteDeviceProxyMissingId(VertxTestContext testContext) {
     client.delete(PORT, HOST, "/subscriber/api/devices/")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         // This will hit a different route or 404
@@ -215,6 +227,7 @@ class SubscriberVerticleTest {
   @DisplayName("Should proxy deletion with invalid device ID to provider")
   void testDeleteDeviceProxyInvalidId(VertxTestContext testContext) {
     client.delete(PORT, HOST, "/subscriber/api/devices/invalid")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         // Should forward to provider which will return 400 or 500
@@ -229,6 +242,7 @@ class SubscriberVerticleTest {
   @DisplayName("Should proxy telemetry fetch to provider (requires provider running)")
   void testGetTelemetryProxy(VertxTestContext testContext) {
     client.get(PORT, HOST, "/subscriber/api/telemetry/device/1")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         // Provider must be running for this test to pass with 200
@@ -242,6 +256,7 @@ class SubscriberVerticleTest {
   @DisplayName("Should return 400 when proxying telemetry fetch with missing device ID")
   void testGetTelemetryProxyMissingId(VertxTestContext testContext) {
     client.get(PORT, HOST, "/subscriber/api/telemetry/device/")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         // This will hit a different route or 404
@@ -254,6 +269,7 @@ class SubscriberVerticleTest {
   @DisplayName("Should proxy telemetry fetch with invalid device ID to provider")
   void testGetTelemetryProxyInvalidId(VertxTestContext testContext) {
     client.get(PORT, HOST, "/subscriber/api/telemetry/device/invalid")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         // Should forward to provider which will return 400 or 500
@@ -268,6 +284,7 @@ class SubscriberVerticleTest {
   @DisplayName("Should fetch data from provider (requires provider running)")
   void testFetchFromProvider(VertxTestContext testContext) {
     client.get(PORT, HOST, "/subscriber/api/fetch")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         // Provider must be running for this test to pass with 200
@@ -307,6 +324,7 @@ class SubscriberVerticleTest {
   @DisplayName("Should handle non-existent routes with 404")
   void testNonExistentRoute(VertxTestContext testContext) {
     client.get(PORT, HOST, "/subscriber/api/nonexistent")
+      .putHeader("X-API-Key", VALID_API_KEY)
       .send()
       .onComplete(testContext.succeeding(response -> testContext.verify(() -> {
         assertEquals(404, response.statusCode());

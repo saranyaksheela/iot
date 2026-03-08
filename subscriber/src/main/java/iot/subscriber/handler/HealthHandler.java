@@ -40,7 +40,8 @@ public class HealthHandler {
         logger.debug("Status endpoint requested");
         
         JsonObject response = new JsonObject()
-            .put(Constants.JSON_KEY_MESSAGE, Constants.SERVICE_GREETING)
+            .put(Constants.JSON_KEY_STATUS, Constants.SERVICE_STATUS_UP)
+            .put(Constants.JSON_KEY_SERVICE, Constants.SERVICE_NAME)
             .put(Constants.JSON_KEY_TIMESTAMP, System.currentTimeMillis());
         
         ctx.response()
