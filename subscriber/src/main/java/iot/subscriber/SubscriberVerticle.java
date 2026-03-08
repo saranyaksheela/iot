@@ -12,6 +12,7 @@ import iot.subscriber.config.Constants;
 import iot.subscriber.handler.DataFetchHandler;
 import iot.subscriber.handler.DeviceProxyHandler;
 import iot.subscriber.handler.HealthHandler;
+import iot.subscriber.handler.TelemetryProxyHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,7 @@ public class SubscriberVerticle extends AbstractVerticle {
   
   private WebClient webClient;
   private DeviceProxyHandler deviceProxyHandler;
+  private TelemetryProxyHandler telemetryProxyHandler;
   private DataFetchHandler dataFetchHandler;
   private HealthHandler healthHandler;
 
@@ -67,6 +69,7 @@ public class SubscriberVerticle extends AbstractVerticle {
   private void initHandlers() {
     logger.info("Initializing handlers...");
     deviceProxyHandler = new DeviceProxyHandler(webClient);
+    telemetryProxyHandler = new TelemetryProxyHandler(webClient);
     dataFetchHandler = new DataFetchHandler(webClient);
     healthHandler = new HealthHandler();
     logger.info("Handlers initialized successfully");
@@ -156,15 +159,19 @@ public class SubscriberVerticle extends AbstractVerticle {
     // REST API endpoints with base URL - delegate to handlers
     router.post(Constants.DEVICES_ENDPOINT).handler(deviceProxyHandler::createDevice);
     router.put(Constants.DEVICE_BY_ID_ENDPOINT).handler(deviceProxyHandler::updateDevice);
+    router.delete(Constants.DEVICE_BY_ID_ENDPOINT).handler(deviceProxyHandler::deleteDevice);
+    router.get(Constants.TELEMETRY_BY_DEVICE_ENDPOINT).handler(telemetryProxyHandler::getTelemetryByDevice);
     router.get(Constants.FETCH_ENDPOINT).handler(dataFetchHandler::fetchFromProvider);
     router.get(Constants.STATUS_ENDPOINT).handler(healthHandler::getStatus);
     
     // Health check endpoint (no base URL for health)
     router.get(Constants.HEALTH_ENDPOINT).handler(healthHandler::healthCheck);
     
-    logger.info("Routes configured: POST {}, PUT {}, GET {}, GET {}, GET {}", 
+    logger.info("Routes configured: POST {}, PUT {}, DELETE {}, GET {}, GET {}, GET {}, GET {}", 
       Constants.DEVICES_ENDPOINT,
       Constants.DEVICE_BY_ID_ENDPOINT,
+      Constants.DEVICE_BY_ID_ENDPOINT,
+      Constants.TELEMETRY_BY_DEVICE_ENDPOINT,
       Constants.FETCH_ENDPOINT,
       Constants.STATUS_ENDPOINT,
       Constants.HEALTH_ENDPOINT);

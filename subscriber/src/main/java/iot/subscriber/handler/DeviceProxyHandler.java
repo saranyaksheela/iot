@@ -117,6 +117,50 @@ public class DeviceProxyHandler {
     }
 
     /**
+     * Handle device deletion by forwarding to Provider service.
+     */
+    public void deleteDevice(RoutingContext ctx) {
+        logger.debug("Received device deletion request, forwarding to Provider");
+        
+        try {
+            // Extract device ID from path parameter
+            String deviceId = ctx.pathParam("id");
+            
+            if (deviceId == null || deviceId.trim().isEmpty()) {
+                logger.warn("Device ID is missing in path parameter");
+                sendBadRequest(ctx, "Device ID is required");
+                return;
+            }
+            
+            logger.info("Forwarding device deletion to Provider: deviceId={}", deviceId);
+            
+            // Build the path with device ID
+            String deletePath = Constants.PROVIDER_DEVICES_PATH + "/" + deviceId;
+            
+            webClient.delete(Constants.PROVIDER_PORT, Constants.PROVIDER_HOST, deletePath)
+                .putHeader(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
+                .send()
+                .onSuccess(response -> {
+                    logger.info("Device deleted successfully via Provider: deviceId={}, statusCode={}", 
+                        deviceId, response.statusCode());
+                    ctx.response()
+                        .setStatusCode(response.statusCode())
+                        .putHeader(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
+                        .end(response.bodyAsString());
+                })
+                .onFailure(err -> {
+                    logger.error("Failed to delete device in Provider: deviceId={}, error={}", 
+                        deviceId, err.getMessage(), err);
+                    sendInternalError(ctx, "Failed to delete device in provider", err.getMessage());
+                });
+                
+        } catch (Exception e) {
+            logger.error("Unexpected error during device deletion proxy", e);
+            sendInternalError(ctx, "Unexpected error occurred", e.getMessage());
+        }
+    }
+
+    /**
      * Send bad request response.
      */
     private void sendBadRequest(RoutingContext ctx, String message) {
