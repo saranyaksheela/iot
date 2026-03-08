@@ -7,6 +7,7 @@ public class Constants {
   
   // API Endpoints
   public static final String DEVICES_ENDPOINT = BASE_URL + "/devices";
+  public static final String DEVICE_BY_ID_ENDPOINT = BASE_URL + "/devices/:id";
   public static final String FETCH_ENDPOINT = BASE_URL + "/fetch";
   public static final String STATUS_ENDPOINT = BASE_URL + "/status";
   public static final String HEALTH_ENDPOINT = "/health";

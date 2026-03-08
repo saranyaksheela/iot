@@ -155,14 +155,16 @@ public class SubscriberVerticle extends AbstractVerticle {
     
     // REST API endpoints with base URL - delegate to handlers
     router.post(Constants.DEVICES_ENDPOINT).handler(deviceProxyHandler::createDevice);
+    router.put(Constants.DEVICE_BY_ID_ENDPOINT).handler(deviceProxyHandler::updateDevice);
     router.get(Constants.FETCH_ENDPOINT).handler(dataFetchHandler::fetchFromProvider);
     router.get(Constants.STATUS_ENDPOINT).handler(healthHandler::getStatus);
     
     // Health check endpoint (no base URL for health)
     router.get(Constants.HEALTH_ENDPOINT).handler(healthHandler::healthCheck);
     
-    logger.info("Routes configured: POST {}, GET {}, GET {}, GET {}", 
+    logger.info("Routes configured: POST {}, PUT {}, GET {}, GET {}, GET {}", 
       Constants.DEVICES_ENDPOINT,
+      Constants.DEVICE_BY_ID_ENDPOINT,
       Constants.FETCH_ENDPOINT,
       Constants.STATUS_ENDPOINT,
       Constants.HEALTH_ENDPOINT);

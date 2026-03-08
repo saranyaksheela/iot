@@ -63,6 +63,60 @@ public class DeviceProxyHandler {
     }
 
     /**
+     * Handle device update by forwarding to Provider service.
+     */
+    public void updateDevice(RoutingContext ctx) {
+        logger.debug("Received device update request, forwarding to Provider");
+        
+        try {
+            // Extract device ID from path parameter
+            String deviceId = ctx.pathParam("id");
+            
+            if (deviceId == null || deviceId.trim().isEmpty()) {
+                logger.warn("Device ID is missing in path parameter");
+                sendBadRequest(ctx, "Device ID is required");
+                return;
+            }
+            
+            JsonObject deviceData = ctx.body().asJsonObject();
+            
+            if (deviceData == null || deviceData.isEmpty()) {
+                logger.warn("Empty request body received for device update");
+                sendBadRequest(ctx, "Request body is required");
+                return;
+            }
+            
+            logger.info("Forwarding device update to Provider: deviceId={}, deviceName={}", 
+                deviceId, 
+                deviceData.getString("deviceName"));
+            
+            // Build the path with device ID
+            String updatePath = Constants.PROVIDER_DEVICES_PATH + "/" + deviceId;
+            
+            webClient.put(Constants.PROVIDER_PORT, Constants.PROVIDER_HOST, updatePath)
+                .putHeader(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
+                .sendJsonObject(deviceData)
+                .onSuccess(response -> {
+                    logger.info("Device updated successfully via Provider: deviceId={}, statusCode={}", 
+                        deviceId, response.statusCode());
+                    ctx.response()
+                        .setStatusCode(response.statusCode())
+                        .putHeader(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
+                        .end(response.bodyAsString());
+                })
+                .onFailure(err -> {
+                    logger.error("Failed to update device in Provider: deviceId={}, error={}", 
+                        deviceId, err.getMessage(), err);
+                    sendInternalError(ctx, "Failed to update device in provider", err.getMessage());
+                });
+                
+        } catch (Exception e) {
+            logger.error("Unexpected error during device update proxy", e);
+            sendInternalError(ctx, "Unexpected error occurred", e.getMessage());
+        }
+    }
+
+    /**
      * Send bad request response.
      */
     private void sendBadRequest(RoutingContext ctx, String message) {
