@@ -30,7 +30,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 # Copy the built fat jar from build stage (contains all dependencies)
 # Use the shaded JAR (not the original one)
 # COPY --from=build /app/target/subscriber-0.0.1-SNAPSHOT.jar /app/subscriber.jar
-COPY --from=build /app/target/*SNAPSHOT.jar /app/subscriber.jar
+COPY --from=build /app/target/subscriber-0.0.1-SNAPSHOT.jar /app/subscriber.jar
 # Copy configuration files
 COPY --from=build /app/src/main/resources/auth-config.json /app/config/auth-config.json
 COPY --from=build /app/src/main/resources/logback.xml /app/config/logback.xml

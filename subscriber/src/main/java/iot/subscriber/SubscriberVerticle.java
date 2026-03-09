@@ -7,7 +7,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.TimeoutHandler;
+import io.vertx.core.http.HttpMethod;
 import iot.subscriber.config.Constants;
 import iot.subscriber.handler.AuthHandler;
 import iot.subscriber.handler.DataFetchHandler;
@@ -144,6 +146,22 @@ public class SubscriberVerticle extends AbstractVerticle {
    */
   private void configureRouter(Router router) {
     logger.debug("Configuring router middleware...");
+    
+    // CORS handler - must be first to handle preflight requests
+    CorsHandler corsHandler = CorsHandler.create()
+      .addOrigin("*")  // Allow all origins for development (restrict in production)
+      .allowedMethod(HttpMethod.GET)
+      .allowedMethod(HttpMethod.POST)
+      .allowedMethod(HttpMethod.PUT)
+      .allowedMethod(HttpMethod.DELETE)
+      .allowedMethod(HttpMethod.OPTIONS)
+      .allowedHeader("Content-Type")
+      .allowedHeader("X-API-Key")
+      .allowedHeader("Authorization")
+      .allowCredentials(false);
+    
+    router.route().handler(corsHandler);
+    logger.info("CORS enabled for all origins with methods: GET, POST, PUT, DELETE, OPTIONS");
     
     // Body handler for processing request bodies
     router.route().handler(BodyHandler.create());
