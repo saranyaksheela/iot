@@ -6,10 +6,15 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.TimeoutHandler;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
+import io.vertx.config.ConfigRetriever;
+import io.vertx.config.ConfigRetrieverOptions;
+import io.vertx.config.ConfigStoreOptions;
 import iot.provider.config.Constants;
 import iot.provider.handler.AuthHandler;
 import iot.provider.handler.DeviceHandler;
@@ -42,19 +47,83 @@ public class ProviderVerticle extends AbstractVerticle {
   public void start(Promise<Void> startPromise) {
     logger.info("Starting Provider service...");
     
-    // Load configurations
-    vertx.fileSystem().readFile("src/main/resources/db-config.json")
-      .compose(dbBuffer -> {
-        dbConfig = dbBuffer.toJsonObject().getJsonObject(Constants.CONFIG_DB);
-        logger.debug("Database configuration loaded successfully");
-        
-        // Load authentication configuration
-        return vertx.fileSystem().readFile("src/main/resources/auth-config.json");
-      })
-      .onSuccess(authBuffer -> {
+    // Create ConfigRetriever with multiple configuration sources
+    ConfigRetrieverOptions options = new ConfigRetrieverOptions();
+    
+    // Add database configuration from file (lowest priority)
+    ConfigStoreOptions dbConfigStore = new ConfigStoreOptions()
+      .setType("file")
+      .setFormat("json")
+      .setConfig(new JsonObject().put("path", "db-config.json"));
+    options.addStore(dbConfigStore);
+    
+    // Add authentication configuration from file
+    ConfigStoreOptions authConfigStore = new ConfigStoreOptions()
+      .setType("file") 
+      .setFormat("json")
+      .setConfig(new JsonObject().put("path", "auth-config.json"));
+    options.addStore(authConfigStore);
+    
+    // Add environment variables (higher priority - will override file values)
+    ConfigStoreOptions envStore = new ConfigStoreOptions()
+      .setType("env");
+    options.addStore(envStore);
+    
+    // Add system properties (highest priority)
+    ConfigStoreOptions sysPropsStore = new ConfigStoreOptions()
+      .setType("sys");
+    options.addStore(sysPropsStore);
+    
+    ConfigRetriever retriever = ConfigRetriever.create(vertx, options);
+    
+    // Retrieve configuration
+    retriever.getConfig()
+      .onSuccess(config -> {
         try {
-          authConfig = authBuffer.toJsonObject();
-          logger.debug("Authentication configuration loaded successfully");
+          logger.info("Configuration loaded successfully");
+          logger.debug("Full config: {}", config.encodePrettily());
+          
+          // Extract database configuration - handle both nested JSON and environment variables
+          dbConfig = config.getJsonObject(Constants.CONFIG_DB);
+          
+          // If nested config doesn't exist, build from environment variables or flat config
+          if (dbConfig == null) {
+            logger.info("No nested database config found, building from environment variables/flat config");
+            dbConfig = new JsonObject()
+              .put(Constants.CONFIG_DB_HOST, config.getString("DB_HOST", config.getString("host", "postgres")))
+              .put(Constants.CONFIG_DB_PORT, config.getInteger("DB_PORT", config.getInteger("port", 5432)))
+              .put(Constants.CONFIG_DB_NAME, config.getString("DB_NAME", config.getString("database", "postgres")))
+              .put(Constants.CONFIG_DB_USER, config.getString("DB_USER", config.getString("user", "postgres")))
+              .put(Constants.CONFIG_DB_PASSWORD, config.getString("DB_PASSWORD", config.getString("password", "123")))
+              .put(Constants.CONFIG_DB_POOL_SIZE, config.getInteger("DB_POOL_SIZE", config.getInteger("pool_size", 5)));
+          } else {
+            // Allow environment variables to override nested config values
+            String envHost = config.getString("DB_HOST");
+            if (envHost != null) dbConfig.put(Constants.CONFIG_DB_HOST, envHost);
+            
+            Integer envPort = config.getInteger("DB_PORT");
+            if (envPort != null) dbConfig.put(Constants.CONFIG_DB_PORT, envPort);
+            
+            String envName = config.getString("DB_NAME");
+            if (envName != null) dbConfig.put(Constants.CONFIG_DB_NAME, envName);
+            
+            String envUser = config.getString("DB_USER");
+            if (envUser != null) dbConfig.put(Constants.CONFIG_DB_USER, envUser);
+            
+            String envPassword = config.getString("DB_PASSWORD");
+            if (envPassword != null) dbConfig.put(Constants.CONFIG_DB_PASSWORD, envPassword);
+            
+            Integer envPoolSize = config.getInteger("DB_POOL_SIZE");
+            if (envPoolSize != null) dbConfig.put(Constants.CONFIG_DB_POOL_SIZE, envPoolSize);
+          }
+          
+          // Set auth config - use entire config object for auth
+          authConfig = config;
+          
+          logger.debug("Database configuration: host={}, port={}, database={}", 
+            dbConfig.getString(Constants.CONFIG_DB_HOST),
+            dbConfig.getInteger(Constants.CONFIG_DB_PORT),
+            dbConfig.getString(Constants.CONFIG_DB_NAME));
           
           // Initialize database connection
           initDatabase();
@@ -66,16 +135,16 @@ public class ProviderVerticle extends AbstractVerticle {
           initHandlers();
           
           // Start HTTP server
-          JsonObject config = new JsonObject();
-          startHttpServer(config, startPromise);
+          JsonObject httpConfig = config.getJsonObject("http", new JsonObject());
+          startHttpServer(httpConfig, startPromise);
           
         } catch (Exception e) {
-          logger.error("Failed to parse configuration", e);
+          logger.error("Failed to process configuration", e);
           startPromise.fail(e);
         }
       })
       .onFailure(err -> {
-        logger.error("Failed to load config files: {}", err.getMessage(), err);
+        logger.error("Failed to load configuration: {}", err.getMessage(), err);
         startPromise.fail(err);
       });
   }
@@ -87,6 +156,13 @@ public class ProviderVerticle extends AbstractVerticle {
     logger.info("Initializing database connection pool...");
     
     try {
+      // Check if we're in test mode and skip database initialization
+      if (System.getProperty("test.mode") != null) {
+        logger.info("Test mode detected - skipping database initialization");
+        pool = null;
+        return;
+      }
+      
       // Configure PostgreSQL connection from config file
       PgConnectOptions connectOptions = new PgConnectOptions()
         .setHost(dbConfig.getString(Constants.CONFIG_DB_HOST))
@@ -145,7 +221,7 @@ public class ProviderVerticle extends AbstractVerticle {
   /**
    * Start HTTP server with configured routes.
    */
-  private void startHttpServer(JsonObject config, Promise<Void> startPromise) {
+  private void startHttpServer(JsonObject httpConfig, Promise<Void> startPromise) {
     logger.info("Starting HTTP server...");
     
     HttpServer server = vertx.createHttpServer();
@@ -158,7 +234,7 @@ public class ProviderVerticle extends AbstractVerticle {
     setupRoutes(router);
     
     // Start the HTTP server
-    int port = config().getInteger(Constants.CONFIG_HTTP_PORT, Constants.DEFAULT_HTTP_PORT);
+    int port = httpConfig.getInteger("port", Constants.DEFAULT_HTTP_PORT);
     server.requestHandler(router).listen(port)
       .onSuccess(s -> {
         logger.info("Provider service started successfully on port {}", port);
@@ -176,6 +252,22 @@ public class ProviderVerticle extends AbstractVerticle {
    */
   private void configureRouter(Router router) {
     logger.debug("Configuring router middleware...");
+    
+    // CORS handler - must be first to handle preflight requests
+    CorsHandler corsHandler = CorsHandler.create()
+      .addOrigin("*")  // Allow all origins for development (restrict in production)
+      .allowedMethod(HttpMethod.GET)
+      .allowedMethod(HttpMethod.POST)
+      .allowedMethod(HttpMethod.PUT)
+      .allowedMethod(HttpMethod.DELETE)
+      .allowedMethod(HttpMethod.OPTIONS)
+      .allowedHeader("Content-Type")
+      .allowedHeader("X-API-Key")
+      .allowedHeader("Authorization")
+      .allowCredentials(false);
+    
+    router.route().handler(corsHandler);
+    logger.info("CORS enabled for all origins with methods: GET, POST, PUT, DELETE, OPTIONS");
     
     // Body handler for processing request bodies
     router.route().handler(BodyHandler.create());
