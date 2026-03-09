@@ -1,0 +1,45 @@
+# Maven build output
+target/
+*.class
+*.jar
+*.war
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Documentation (except README)
+*.md
+!README.md
+
+# Logs
+logs/
+*.log
+
+# Test reports
+surefire-reports/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore

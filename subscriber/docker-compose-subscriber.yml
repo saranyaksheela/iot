@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # Subscriber Service
+  subscriber:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: iot-subscriber
+    ports:
+      - "8081:8081"
+    environment:
+      JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseG1GC"
+      PROVIDER_HOST: provider
+      PROVIDER_PORT: 8080
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    networks:
+      - iot-network
+    restart: unless-stopped
+    volumes:
+      - subscriber_logs:/app/logs
+    
+networks:
+  iot-network:
+    external: true
+    name: iot-network
+
+volumes:
+  subscriber_logs:
+    name: iot-subscriber-logs
