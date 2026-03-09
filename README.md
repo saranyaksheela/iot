@@ -37,3 +37,14 @@ Database initialization scripts are included in the project.
 ## Deployment
 
 Refer Deployment Document at the root
+
+## Testing APIs
+
+Once the containers are running, APIs can be tested using the provided HTML pages:
+
+- `provider/provider-api-tester.html`
+- `subscriber/subscriber-cors-test.html`
+
+Simply open these files in a web browser and test the endpoints.
+
+Alternatively, you can also use the **Postman collections** available inside each service directory to test the APIs.
