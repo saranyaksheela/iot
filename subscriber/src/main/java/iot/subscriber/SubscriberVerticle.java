@@ -150,18 +150,28 @@ public class SubscriberVerticle extends AbstractVerticle {
     // CORS handler - must be first to handle preflight requests
     CorsHandler corsHandler = CorsHandler.create()
       .addOrigin("*")  // Allow all origins for development (restrict in production)
+      .addOrigin("null")  // Allow null origin for local file access
       .allowedMethod(HttpMethod.GET)
       .allowedMethod(HttpMethod.POST)
       .allowedMethod(HttpMethod.PUT)
       .allowedMethod(HttpMethod.DELETE)
       .allowedMethod(HttpMethod.OPTIONS)
+      .allowedMethod(HttpMethod.HEAD)
+      .allowedHeader("Access-Control-Allow-Headers")
+      .allowedHeader("Access-Control-Allow-Method")
+      .allowedHeader("Access-Control-Allow-Origin")
+      .allowedHeader("Access-Control-Allow-Credentials")
       .allowedHeader("Content-Type")
       .allowedHeader("X-API-Key")
       .allowedHeader("Authorization")
-      .allowCredentials(false);
+      .allowedHeader("Accept")
+      .allowedHeader("Origin")
+      .allowedHeader("User-Agent")
+      .allowCredentials(false)
+      .maxAgeSeconds(86400); // Cache preflight for 24 hours
     
     router.route().handler(corsHandler);
-    logger.info("CORS enabled for all origins with methods: GET, POST, PUT, DELETE, OPTIONS");
+    logger.info("CORS enabled for all origins (including null) with comprehensive headers and methods");
     
     // Body handler for processing request bodies
     router.route().handler(BodyHandler.create());

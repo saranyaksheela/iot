@@ -30,6 +30,9 @@ public class HealthHandler {
         ctx.response()
             .setStatusCode(Constants.STATUS_OK)
             .putHeader(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
+            .putHeader("Access-Control-Allow-Origin", "*")
+            .putHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+            .putHeader("Access-Control-Allow-Headers", "Content-Type, X-API-Key, Authorization")
             .end(response.encode());
     }
 
@@ -47,6 +50,9 @@ public class HealthHandler {
         ctx.response()
             .setStatusCode(Constants.STATUS_OK)
             .putHeader(Constants.HEADER_CONTENT_TYPE, Constants.CONTENT_TYPE_JSON)
+            .putHeader("Access-Control-Allow-Origin", "*")
+            .putHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+            .putHeader("Access-Control-Allow-Headers", "Content-Type, X-API-Key, Authorization")
             .end(response.encode());
     }
 }

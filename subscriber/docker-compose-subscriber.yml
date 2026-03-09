@@ -11,6 +11,8 @@ services:
       - "8081:8081"
     environment:
       JAVA_OPTS: "-Xms256m -Xmx512m -XX:+UseG1GC"
+      # Enable debug logging for CORS troubleshooting
+      VERTX_LOGGER_DELEGATE_FACTORY_CLASS_NAME: io.vertx.core.logging.SLF4JLogDelegateFactory
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8081/health || exit 1"]
       interval: 30s
