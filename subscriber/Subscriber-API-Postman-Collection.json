@@ -1,0 +1,689 @@
+{
+  "info": {
+    "name": "IoT Subscriber API",
+    "description": "Comprehensive Postman collection for IoT Subscriber service that acts as a proxy to the Provider service",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "pk_live_subscriber987654321xyz",
+      "type": "string"
+    },
+    {
+      "key": "deviceId",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Health check endpoint - no authentication required"
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response has status field\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('status');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Service Status",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/subscriber/api/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["subscriber", "api", "status"]
+        },
+        "description": "Get subscriber service status - no authentication required"
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test(\"Response has service information\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('service');",
+              "    pm.expect(jsonData).to.have.property('status');",
+              "    pm.expect(jsonData).to.have.property('message');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Device Proxy Operations",
+      "item": [
+        {
+          "name": "Create Device via Proxy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceName\": \"Proxied Temperature Sensor 01\",\n  \"deviceType\": \"temperature_sensor\",\n  \"firmwareVersion\": \"v1.3.0\",\n  \"location\": \"Building C - Floor 2\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/subscriber/api/devices",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriber", "api", "devices"]
+            },
+            "description": "Create a new IoT device via subscriber proxy to provider service"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has device ID\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.environment.set('deviceId', jsonData.id);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has deviceUuid\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('deviceUuid');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Device via Proxy",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceName\": \"Updated Proxied Temperature Sensor 01\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/subscriber/api/devices/{{deviceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriber", "api", "devices", "{{deviceId}}"]
+            },
+            "description": "Update an existing device via subscriber proxy"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Device name is updated\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.deviceName).to.eql('Updated Proxied Temperature Sensor 01');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Device via Proxy",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriber/api/devices/{{deviceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriber", "api", "devices", "{{deviceId}}"]
+            },
+            "description": "Delete a device via subscriber proxy"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has success message\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Telemetry Proxy Operations",
+      "item": [
+        {
+          "name": "Get Telemetry by Device ID via Proxy",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriber/api/telemetry/device/{{deviceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriber", "api", "telemetry", "device", "{{deviceId}}"]
+            },
+            "description": "Retrieve telemetry data for a specific device via subscriber proxy"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has telemetry array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('telemetry');",
+                  "    pm.expect(jsonData.telemetry).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Data Fetch Operations",
+      "item": [
+        {
+          "name": "Fetch Data from Provider",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriber/api/fetch",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriber", "api", "fetch"]
+            },
+            "description": "Fetch data from provider service via subscriber"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has data from provider\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('source');",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "});",
+                  "",
+                  "pm.test(\"Response indicates provider as source\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.source).to.eql('provider');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Authentication Tests",
+      "item": [
+        {
+          "name": "Test Valid Subscriber API Key",
+          "request": {
+            "auth": {
+              "type": "apikey",
+              "apikey": [
+                {
+                  "key": "key",
+                  "value": "X-API-Key",
+                  "type": "string"
+                },
+                {
+                  "key": "value",
+                  "value": "pk_live_subscriber987654321xyz",
+                  "type": "string"
+                },
+                {
+                  "key": "in",
+                  "value": "header",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriber/api/fetch",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriber", "api", "fetch"]
+            },
+            "description": "Test with valid subscriber API key"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Valid API key returns 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test Admin API Key",
+          "request": {
+            "auth": {
+              "type": "apikey",
+              "apikey": [
+                {
+                  "key": "key",
+                  "value": "X-API-Key",
+                  "type": "string"
+                },
+                {
+                  "key": "value",
+                  "value": "pk_live_admin_secret_key_2026",
+                  "type": "string"
+                },
+                {
+                  "key": "in",
+                  "value": "header",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriber/api/fetch",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriber", "api", "fetch"]
+            },
+            "description": "Test with admin API key"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Admin API key returns 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test Invalid API Key",
+          "request": {
+            "auth": {
+              "type": "apikey",
+              "apikey": [
+                {
+                  "key": "key",
+                  "value": "X-API-Key",
+                  "type": "string"
+                },
+                {
+                  "key": "value",
+                  "value": "invalid_subscriber_key",
+                  "type": "string"
+                },
+                {
+                  "key": "in",
+                  "value": "header",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriber/api/fetch",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriber", "api", "fetch"]
+            },
+            "description": "Test with invalid API key"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Invalid API key returns 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test Missing API Key",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriber/api/fetch",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriber", "api", "fetch"]
+            },
+            "description": "Test without API key"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Missing API key returns 401\", function () {",
+                  "    pm.response.to.have.status(401);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Integration Tests",
+      "item": [
+        {
+          "name": "End-to-End Device Creation Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceName\": \"E2E Test Device\",\n  \"deviceType\": \"test_sensor\",\n  \"firmwareVersion\": \"v1.0.0-test\",\n  \"location\": \"Test Environment\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/subscriber/api/devices",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriber", "api", "devices"]
+            },
+            "description": "End-to-end test for device creation through subscriber proxy"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"E2E Device creation successful\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Created device has all required fields\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('deviceUuid');",
+                  "    pm.expect(jsonData).to.have.property('deviceName');",
+                  "    pm.expect(jsonData).to.have.property('deviceType');",
+                  "    pm.expect(jsonData).to.have.property('firmwareVersion');",
+                  "    pm.expect(jsonData).to.have.property('location');",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData).to.have.property('createdAt');",
+                  "});",
+                  "",
+                  "pm.test(\"Device data matches input\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.deviceName).to.eql('E2E Test Device');",
+                  "    pm.expect(jsonData.deviceType).to.eql('test_sensor');",
+                  "    pm.expect(jsonData.firmwareVersion).to.eql('v1.0.0-test');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cross-Service Communication Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/subscriber/api/fetch",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriber", "api", "fetch"]
+            },
+            "description": "Test communication between subscriber and provider services"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Cross-service communication works\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Provider data is accessible via subscriber\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.source).to.eql('provider');",
+                  "    pm.expect(jsonData).to.have.property('data');",
+                  "});",
+                  "",
+                  "pm.test(\"Response includes timestamp\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('timestamp');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sample Proxy Tests",
+      "item": [
+        {
+          "name": "Create Sample Smart Light via Proxy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceName\": \"Smart Light 401\",\n  \"deviceType\": \"smart_light\",\n  \"firmwareVersion\": \"v2.3.1\",\n  \"location\": \"Conference Room A\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/subscriber/api/devices",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriber", "api", "devices"]
+            },
+            "description": "Create sample smart light device via proxy"
+          }
+        },
+        {
+          "name": "Create Sample Air Quality Monitor via Proxy",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceName\": \"Air Quality Monitor 501\",\n  \"deviceType\": \"air_quality_sensor\",\n  \"firmwareVersion\": \"v1.8.0\",\n  \"location\": \"Office Floor 3\",\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/subscriber/api/devices",
+              "host": ["{{baseUrl}}"],
+              "path": ["subscriber", "api", "devices"]
+            },
+            "description": "Create sample air quality monitor device via proxy"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Set default headers for all requests",
+          "pm.request.headers.add({key: 'User-Agent', value: 'Postman IoT Subscriber API Tests'});",
+          "",
+          "// Log the request being made",
+          "console.log('Making request to: ' + pm.request.url);",
+          "",
+          "// Set subscriber-specific environment variables if needed",
+          "if (!pm.environment.get('subscriberBaseUrl')) {",
+          "    pm.environment.set('subscriberBaseUrl', 'http://localhost:8081');",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "// Global test for response time",
+          "pm.test('Response time is less than 10000ms (proxy may be slower)', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(10000);",
+          "});",
+          "",
+          "// Global test for content type on success",
+          "if (pm.response.code === 200 || pm.response.code === 201) {",
+          "    pm.test('Content-Type is application/json', function () {",
+          "        pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "    });",
+          "}",
+          "",
+          "// Log response for debugging proxy operations",
+          "if (pm.response.code >= 400) {",
+          "    console.log('Error response from subscriber service:', pm.response.text());",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}
